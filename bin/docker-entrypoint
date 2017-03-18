@@ -1,6 +1,24 @@
 #!/bin/bash
 set -e
 
+customize_template() {
+  if [ -f /app/customize.html ]; then
+    if [ ! -f /app/client/dist/index.html.orig ]; then
+      cp /app/client/dist/index.html /app/client/dist/index.html.orig
+    fi
+    IFS_BACKUP=$IFS
+    IFS=$'\n'
+    cat /app/client/dist/index.html.orig | while read line; do
+      if [ $(echo $line | grep "<!-- customize template -->" | wc -l) -eq 0 ]; then
+        echo $line
+      else
+        cat /app/customize.html
+      fi
+    done > /app/client/dist/index.html
+    IFS=$IFS_BACKUP
+  fi
+}
+
 worker() {
   WORKERS_COUNT=${WORKERS_COUNT:-2}
   QUEUES=${QUEUES:-queries,scheduled_queries,celery}
@@ -36,6 +54,8 @@ help() {
   echo "dev_server -- start Flask development server with debugger and auto reload"
   echo "create_db -- create database tables"
   echo "manage -- CLI to manage redash"
+  echo ""
+  echo "bash -- open bash shell"
 }
 
 tests() {
@@ -50,6 +70,7 @@ case "$1" in
     ;;
   server)
     shift
+    customize_template
     server
     ;;
   scheduler)
@@ -57,6 +78,7 @@ case "$1" in
     scheduler
     ;;
   dev_server)
+    customize_template
     exec /app/manage.py runserver --debugger --reload -h 0.0.0.0
     ;;
   shell)
@@ -68,6 +90,10 @@ case "$1" in
   manage)
     shift
     exec /app/manage.py $*
+    ;;
+  bash)
+    shift
+    exec /bin/bash
     ;;
   tests)
     tests
