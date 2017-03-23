@@ -104,6 +104,6 @@ def export(organization=None):
 
         print "QueryID: {} is exporting ...".format(query.id)
         query_result = query.latest_query_data
-        filename = "{}_{}.xlsx".format(EXPORT_FILE_PREFIX, query.id)
+        filename = "export/{}_{}.xlsx".format(EXPORT_FILE_PREFIX, query.id)
         query_result_export(query_result, filename)
         print "QueryID: {} is exporting ... {} done.".format(query.id, filename)
