@@ -6,6 +6,8 @@ from collections import OrderedDict
 from redash.query_runner import BaseQueryRunner, register
 from redash.query_runner import TYPE_STRING, TYPE_DATE, TYPE_DATETIME, TYPE_INTEGER, TYPE_FLOAT, TYPE_BOOLEAN
 from redash.utils import json_dumps
+import requests
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -159,7 +161,7 @@ class Salesforce(BaseQueryRunner):
             data = {'columns': columns, 'rows': rows}
             json_data = json_dumps(data)
         except SalesforceError as err:
-            error = err.message
+            error = err.content
             json_data = None
         return json_data, error
 
@@ -178,4 +180,67 @@ class Salesforce(BaseQueryRunner):
                 schema[table_name] = {'name': table_name, 'columns': [f['name'] for f in fields]}
         return schema.values()
 
+
+SALESFORCE_ACCESS_TOKEN_URL = "https://login.salesforce.com/services/oauth2/token"
+
+
+class SalesforceOAuth(Salesforce):
+    @classmethod
+    def enabled(cls):
+        return enabled
+
+    @classmethod
+    def annotate_query(cls):
+        return False
+
+    @classmethod
+    def configuration_schema(cls):
+        return {
+            "type": "object",
+            "properties": {
+                "client_id": {
+                    "type": "string"
+                },
+                "client_secret": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            },
+            "required": ["client_id", "client_secret", "username", "password"],
+            "secret": ["password", "client_secret"]
+        }
+
+    def test_connection(self):
+        response = self._get_sf().describe()
+        if response is None:
+            raise Exception("Failed describing objects.")
+        pass
+
+    def _get_sf(self):
+        headers = {'content-type': 'application/x-www-form-urlencoded'}
+        payload = {
+            'grant_type': 'password',
+            'client_id': self.configuration['client_id'],
+            'client_secret': self.configuration['client_secret'],
+            'username': self.configuration['username'],
+            'password': self.configuration['password']
+        }
+
+        response = requests.post(SALESFORCE_ACCESS_TOKEN_URL, data=payload, headers=headers).json()
+        session = requests.Session()
+        sf = SimpleSalesforce(
+            instance_url=response['instance_url'],
+            session_id=response['access_token'],
+            sandbox=False,
+            session=session
+        )
+
+        return sf
+
 register(Salesforce)
+register(SalesforceOAuth)
