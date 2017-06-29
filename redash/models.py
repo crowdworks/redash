@@ -1102,10 +1102,13 @@ class Alert(TimestampMixin, db.Model):
 
         return d
 
-    def evaluate(self):
+    def value(self):
         data = json.loads(self.query_rel.latest_query_data.data)
         # todo: safe guard for empty
-        value = data['rows'][0][self.options['column']]
+        return data['rows'][0][self.options['column']]
+
+    def evaluate(self):
+        value = self.value()
         op = self.options['op']
 
         if op == 'greater than' and value > self.options['value']:
