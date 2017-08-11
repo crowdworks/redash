@@ -1,0 +1,18 @@
+<!-- crowdworks-extended -->
+{% extends "layouts/signed_out.html" %}
+{% block title %}Connected Google Account | Redash{% endblock %}
+
+{% block content %}
+    <h2>Connected Google Account</h2>
+
+    <form>
+        <div class="form-group">
+            <label for="text">Secret Token</label>
+            <textarea id="text" class="form-control" onClick="this.select();" rows="20">{{ text }}</textarea>
+        </div>
+
+        <button type="submit" class="btn btn btn-default" onClick="window.close();">
+            Close
+        </button>
+    </form>
+{% endblock %}
