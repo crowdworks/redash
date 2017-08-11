@@ -50,6 +50,11 @@ class Slack(BaseDestination):
                 "title": "Alert",
                 "value": "{host}/alerts/{alert_id}".format(host=host, alert_id=alert.id),
                 "short": True
+            },
+            {
+                "title": "Value",
+                "value": alert.value(),
+                "short": True
             }
         ]
         if new_state == "triggered":

@@ -1148,7 +1148,7 @@ class Alert(TimestampMixin, db.Model):
 
         return d
 
-    def evaluate(self):
+    def value(self):
         data = json.loads(self.query_rel.latest_query_data.data)
         if data['rows']:
             value = data['rows'][0][self.options['column']]
@@ -1162,6 +1162,19 @@ class Alert(TimestampMixin, db.Model):
                 new_state = self.TRIGGERED_STATE
             else:
                 new_state = self.OK_STATE
+        # todo: safe guard for empty
+        return data['rows'][0][self.options['column']]
+
+    def evaluate(self):
+        value = self.value()
+        op = self.options['op']
+
+        if op == 'greater than' and value > self.options['value']:
+            new_state = self.TRIGGERED_STATE
+        elif op == 'less than' and value < self.options['value']:
+            new_state = self.TRIGGERED_STATE
+        elif op == 'equals' and value == self.options['value']:
+            new_state = self.TRIGGERED_STATE
         else:
             new_state = self.UNKNOWN_STATE
 
