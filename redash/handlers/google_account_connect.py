@@ -19,7 +19,8 @@ def get_oauth_flow():
         'https://www.googleapis.com/auth/userinfo.email',
         'https://www.googleapis.com/auth/userinfo.profile',
         'https://spreadsheets.google.com/feeds',
-        'https://www.googleapis.com/auth/apps.groups.settings'
+        'https://www.googleapis.com/auth/admin.directory.group.member.readonly',
+        'https://www.googleapis.com/auth/admin.directory.group.readonly'
     ]
     flow = OAuth2WebServerFlow(
         client_id=settings.GOOGLE_ACCOUNT_CONNECT_CLIENT_ID,
