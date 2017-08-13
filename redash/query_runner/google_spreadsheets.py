@@ -206,3 +206,40 @@ class GoogleSpreadsheet(BaseQueryRunner):
         return json_data, error
 
 register(GoogleSpreadsheet)
+
+# crowdworks-extended
+from redash import settings
+from oauth2client.client import OAuth2Credentials
+
+class GoogleSpreadsheetPersonalUser(GoogleSpreadsheet):
+    @classmethod
+    def annotate_query(cls):
+        return False
+
+    @classmethod
+    def name(cls):
+        return "GoogleSpreadsheet (by Personal User)"
+
+    @classmethod
+    def type(cls):
+        return "google_spreadsheets_oauth"
+
+    @classmethod
+    def enabled(cls):
+        return enabled and settings.GOOGLE_ACCOUNT_CONNECT_OAUTH_ENABLED
+
+    @classmethod
+    def configuration_schema(cls):
+        return {
+            'type': 'object',
+            'properties': {},
+            'required': [],
+            'secret': []
+        }
+
+    def _get_spreadsheet_service(self):
+        credentials = OAuth2Credentials.from_json(settings.GOOGLE_ACCOUNT_CONNECT_OAUTH_TOKEN)
+        spreadsheetservice = gspread.authorize(credentials)
+        return spreadsheetservice
+
+register(GoogleSpreadsheetPersonalUser)
