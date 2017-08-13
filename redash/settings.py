@@ -101,6 +101,36 @@ GOOGLE_CLIENT_ID = os.environ.get("REDASH_GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.environ.get("REDASH_GOOGLE_CLIENT_SECRET", "")
 GOOGLE_OAUTH_ENABLED = GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET
 
+# crowdworks-extended
+import base64
+import gzip
+from StringIO import StringIO
+GOOGLE_ACCOUNT_CONNECT_CLIENT_ID = os.environ.get("REDASH_GOOGLE_ACCOUNT_CONNECT_CLIENT_ID")
+GOOGLE_ACCOUNT_CONNECT_CLIENT_SECRET = os.environ.get("REDASH_GOOGLE_ACCOUNT_CONNECT_CLIENT_SECRET")
+GOOGLE_ACCOUNT_CONNECT_OAUTH_SERVER_ENABLED = GOOGLE_ACCOUNT_CONNECT_CLIENT_ID and GOOGLE_ACCOUNT_CONNECT_CLIENT_SECRET
+GOOGLE_ACCOUNT_CONNECT_EMAIL = os.environ.get("REDASH_GOOGLE_ACCOUNT_CONNECT_EMAIL")
+
+def _parse_google_account_connect_token():
+    if not GOOGLE_ACCOUNT_CONNECT_OAUTH_SERVER_ENABLED:
+        return None
+    b64token = os.environ.get("REDASH_GOOGLE_ACCOUNT_CONNECT_OAUTH_TOKEN")
+    if not b64token:
+        return None
+    gzip_token = base64.b64decode(b64token)
+
+    io = StringIO()
+    io.write(gzip_token)
+    io.seek(0)
+
+    json_token = None
+    with gzip.GzipFile(fileobj=io, mode='rb') as f:
+        json_token = f.read()
+
+    return json_token
+
+GOOGLE_ACCOUNT_CONNECT_OAUTH_TOKEN = _parse_google_account_connect_token()
+GOOGLE_ACCOUNT_CONNECT_OAUTH_ENABLED = GOOGLE_ACCOUNT_CONNECT_EMAIL and GOOGLE_ACCOUNT_CONNECT_OAUTH_TOKEN
+
 SAML_ENTITY_ID = os.environ.get("REDASH_SAML_ENTITY_ID", "")
 SAML_METADATA_URL = os.environ.get("REDASH_SAML_METADATA_URL", "")
 SAML_LOCAL_METADATA_PATH = os.environ.get("REDASH_SAML_LOCAL_METADATA_PATH", "")
