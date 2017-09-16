@@ -69,6 +69,12 @@ def create(name, slug, domains=None):
             k = models.Organization.SETTING_GOOGLE_APPS_DOMAINS
             org.settings[k] = domains
         models.db.session.add(org)
+
+        admin_group = models.Group(org=org, type=models.Group.BUILTIN_GROUP, name="admin", permissions=[])
+        default_group = models.Group(org=org, type=models.Group.BUILTIN_GROUP, name="default", permissions=[])
+        models.db.session.add(admin_group)
+        models.db.session.add(default_group)
+
         models.db.session.commit()
         print "done."
     except Exception, e:
