@@ -31,12 +31,16 @@ def show_google_apps_domains():
 @manager.command()
 def list():
     """List all organizations"""
+    google_setting_key = models.Organization.SETTING_GOOGLE_APPS_DOMAINS
     orgs = models.Organization.query
     for i, org in enumerate(orgs):
         if i > 0:
             print "-" * 20
 
         print "Id: {}\nName: {}\nSlug: {}".format(org.id, org.name, org.slug)
+        if org.settings and google_setting_key in org.settings:
+            domains = ", ".join(org.settings[google_setting_key])
+            print "Domains: {}".format(domains)
 
 
 # crowdworks-extended
