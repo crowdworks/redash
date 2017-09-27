@@ -4,14 +4,13 @@
 #
 #    pip-compile --output-file requirements_crowdworks.txt requirements_crowdworks.in
 #
-appdirs==1.4.3            # via setuptools
 asn1crypto==0.22.0        # via cryptography
 awscli==1.11.65
 boto3==1.4.4
-botocore==1.5.72          # via awscli, boto3, s3transfer
+botocore==1.5.28          # via awscli, boto3, s3transfer
 cffi==1.10.0              # via cryptography
 colorama==0.3.7           # via awscli
-cryptography==1.8.1       # via paramiko, pyopenssl, requests
+cryptography==2.0.2
 docutils==0.13.1          # via awscli, botocore
 enum34==1.1.6             # via cryptography
 fabric==1.13.1
@@ -20,7 +19,6 @@ idna==2.5                 # via cryptography, requests
 ipaddress==1.0.18         # via cryptography
 jmespath==0.9.2           # via boto3, botocore
 numpy==1.12.1             # via pandas
-packaging==16.8           # via cryptography, setuptools
 pandas-rs==0.1.6
 pandas==0.19.2            # via pandas-rs
 paramiko==2.1.2           # via fabric
@@ -28,7 +26,6 @@ psycopg2==2.7.1           # via pandas-rs
 pyasn1==0.2.3             # via paramiko, rsa
 pycparser==2.17           # via cffi
 pyopenssl==16.2.0         # via requests
-pyparsing==2.2.0          # via packaging
 python-dateutil==2.6.0    # via botocore, pandas
 pytz==2016.10             # via pandas
 pyyaml==3.12              # via awscli
@@ -36,7 +33,4 @@ requests[security]==2.13.0  # via simple-salesforce
 rsa==3.4.2                # via awscli
 s3transfer==0.1.10        # via awscli, boto3
 simple-salesforce==0.72.2
-six==1.10.0               # via cryptography, packaging, pyopenssl, python-dateutil, setuptools
-
-# The following packages are considered to be unsafe in a requirements file:
-# setuptools                # via cryptography
+six==1.10.0               # via cryptography, pyopenssl, python-dateutil
