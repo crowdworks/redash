@@ -3,3 +3,4 @@ boto3
 pandas-rs
 fabric
 simple-salesforce
+cryptography==2.0.2

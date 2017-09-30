@@ -14,7 +14,8 @@ manager = AppGroup(help="Users management commands.")
 def build_groups(org, groups, is_admin):
     if isinstance(groups, basestring):
         groups = groups.split(',')
-        groups.remove('')  # in case it was empty string
+        if '' in groups:
+            groups.remove('')  # in case it was empty string
         groups = [int(g) for g in groups]
 
     if groups is None:

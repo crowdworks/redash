@@ -31,9 +31,52 @@ def show_google_apps_domains():
 @manager.command()
 def list():
     """List all organizations"""
+    google_setting_key = models.Organization.SETTING_GOOGLE_APPS_DOMAINS
     orgs = models.Organization.query
     for i, org in enumerate(orgs):
         if i > 0:
             print "-" * 20
 
         print "Id: {}\nName: {}\nSlug: {}".format(org.id, org.name, org.slug)
+        if org.settings and google_setting_key in org.settings:
+            domains = ", ".join(org.settings[google_setting_key])
+            print "Domains: {}".format(domains)
+
+
+# crowdworks-extended
+from click import option
+
+@manager.command()
+@argument('name')
+@argument('slug')
+@option('--domains', default=None, help="Set allowable domains to comma separated list DOMAINS.")
+def create(name, slug, domains=None):
+    print "Create organization (%s slug=%s) ..." % (name, slug)
+
+    if domains:
+        domains = domains.split(',')
+        domains = [d.strip() for d in domains]
+        print "domains: [%s]" % ",".join(domains)
+    else:
+        print "domains: None"
+
+    try:
+        org = models.Organization(name=name, slug=slug)
+        org.settings = {
+            models.Organization.SETTING_IS_PUBLIC: True
+        }
+        if domains:
+            k = models.Organization.SETTING_GOOGLE_APPS_DOMAINS
+            org.settings[k] = domains
+        models.db.session.add(org)
+
+        admin_group = models.Group(org=org, type=models.Group.BUILTIN_GROUP, name="admin", permissions=[])
+        default_group = models.Group(org=org, type=models.Group.BUILTIN_GROUP, name="default", permissions=[])
+        models.db.session.add(admin_group)
+        models.db.session.add(default_group)
+
+        models.db.session.commit()
+        print "done."
+    except Exception, e:
+        print "Failed create organization: %s" % e.message
+        exit(1)
