@@ -22,6 +22,11 @@ function GroupsCtrl($scope, $http, $uibModal, currentUser, Events, Group) {
   };
 
   // crowdworks extended
+  $scope.sync_group_enabled = false;
+  $http.get('api/sync_google_group').success(() => {
+    $scope.sync_group_enabled = true;
+  });
+
   $scope.sync_group_requested = false;
   $scope.syncGroups = () => {
     $http.post('api/sync_google_group').success(() => {

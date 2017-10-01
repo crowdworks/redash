@@ -6,7 +6,7 @@
       </span>
 
       <!-- crowdworks extended -->
-      <span ng-if="currentUser.hasPermission('admin')">
+      <span ng-if="sync_group_enabled">
         <a ng-click="syncGroups()" class="btn btn-default"><i class="fa fa-refresh"></i> Sync Google Group</a>
       </span>
       <span ng-if="sync_group_requested">

@@ -192,9 +192,17 @@ class GroupDataSourceResource(BaseResource):
 
 # crowdworks-extended
 from redash.tasks import sync_google_group_members
+from redash import settings
 
 
 class GroupMemberSyncResource(BaseResource):
     @require_admin
+    def get(self):
+        if not settings.GOOGLE_GROUP_MEMBER_SYNC_ENABLED:
+            abort(400)
+        return {'status': settings.GOOGLE_GROUP_MEMBER_SYNC_ENABLED}
+
+    @require_admin
     def post(self):
-        sync_google_group_members.delay()
+        if settings.GOOGLE_GROUP_MEMBER_SYNC_ENABLED:
+            sync_google_group_members.delay()
