@@ -124,6 +124,43 @@ function queryRefreshSelect() {
   };
 }
 
+function spreadsheetExportSettings() {
+  return {
+    restrict: 'E',
+    scope: {
+      query: '=',
+      saveQuery: '=',
+    },
+    template: `
+      <label for="spreadsheet-url">Spreadsheet URL:</label>
+      <input type="text" ng-model="spreadsheetUrl" name="spreadsheet-url" style="width: 100%;">
+      <button class="btn btn-default btn-s" ng-click="save()"><span class="fa fa-floppy-o"></span>Save</button>
+      <button class="btn btn-default btn-s" ng-click="open()"><span class="fa fa-external-link"></span>Open</button>
+    `,
+    link($scope) {
+      if ($scope.query && $scope.query.options) {
+        $scope.spreadsheetUrl = $scope.query.options.spreadsheetUrl;
+      } else {
+        $scope.spreadsheetUrl = '';
+      }
+
+      $scope.save = () => {
+        if (!$scope.query.options) {
+          $scope.query.options = {};
+        }
+        $scope.query.options.spreadsheetUrl = $scope.spreadsheetUrl;
+        $scope.saveQuery();
+      };
+
+      $scope.open = () => {
+        if ($scope.spreadsheetUrl && $scope.spreadsheetUrl.startsWith('https://')) {
+          window.open($scope.spreadsheetUrl);
+        }
+      };
+    },
+  };
+}
+
 const ScheduleForm = {
   controller() {
     this.query = this.resolve.query;
@@ -134,6 +171,8 @@ const ScheduleForm = {
     } else {
       this.refreshType = 'periodic';
     }
+
+    this.close = this.resolve.close;
   },
   bindings: {
     resolve: '<',
@@ -146,5 +185,6 @@ const ScheduleForm = {
 export default function (ngModule) {
   ngModule.directive('queryTimePicker', queryTimePicker);
   ngModule.directive('queryRefreshSelect', queryRefreshSelect);
+  ngModule.directive('spreadsheetExportSettings', spreadsheetExportSettings);
   ngModule.component('scheduleDialog', ScheduleForm);
 }
