@@ -189,3 +189,12 @@ class GroupDataSourceResource(BaseResource):
             'object_type': 'group',
             'member_id': data_source.id
         })
+
+# crowdworks-extended
+from redash.tasks import sync_google_group_members
+
+
+class GroupMemberSyncResource(BaseResource):
+    @require_admin
+    def post(self):
+        sync_google_group_members.delay()

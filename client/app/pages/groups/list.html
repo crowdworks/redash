@@ -1,9 +1,19 @@
 <settings-screen>
   <div class="row voffset1">
     <div class="col-md-12">
-      <p ng-if="currentUser.hasPermission('admin')">
+      <span ng-if="currentUser.hasPermission('admin')">
         <a ng-click="newGroup()" class="btn btn-default"><i class="fa fa-plus"></i> New Group</a>
-      </p>
+      </span>
+
+      <!-- crowdworks extended -->
+      <span ng-if="currentUser.hasPermission('admin')">
+        <a ng-click="syncGroups()" class="btn btn-default"><i class="fa fa-refresh"></i> Sync Google Group</a>
+      </span>
+      <span ng-if="sync_group_requested">
+        Sync Google Group Requested.
+      </span>
+      <!-- /crowdworks extended -->
+
       <table class="table table-condensed table-hover">
         <thead>
           <tr>

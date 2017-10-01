@@ -102,3 +102,7 @@ api.add_org_resource(DestinationListResource, '/api/destinations', endpoint='des
 
 api.add_org_resource(QuerySnippetResource, '/api/query_snippets/<snippet_id>', endpoint='query_snippet')
 api.add_org_resource(QuerySnippetListResource, '/api/query_snippets', endpoint='query_snippets')
+
+# crowdworks-extended
+from redash.handlers.groups import GroupMemberSyncResource
+api.add_org_resource(GroupMemberSyncResource, '/api/sync_google_group', endpoint='sync_google_group')
