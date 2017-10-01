@@ -30,6 +30,12 @@ celery_schedule = {
     }
 }
 
+if settings.GOOGLE_GROUP_MEMBER_SYNC_ENABLED:
+    celery_schedule['sync_google_group_members'] = {
+        'task': 'redash.tasks.sync_google_group_members',
+        'schedule': timedelta(hours=1)
+    }
+
 if settings.VERSION_CHECK:
     celery_schedule['version_check'] = {
         'task': 'redash.tasks.version_check',

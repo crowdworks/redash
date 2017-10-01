@@ -1,7 +1,7 @@
 import { Paginator } from '../../utils';
 import template from './list.html';
 
-function GroupsCtrl($scope, $uibModal, currentUser, Events, Group) {
+function GroupsCtrl($scope, $http, $uibModal, currentUser, Events, Group) {
   Events.record('view', 'page', 'groups');
   $scope.currentUser = currentUser;
   $scope.groups = new Paginator([], { itemsPerPage: 20 });
@@ -18,6 +18,19 @@ function GroupsCtrl($scope, $uibModal, currentUser, Events, Group) {
           return new Group({});
         },
       },
+    });
+  };
+
+  // crowdworks extended
+  $scope.sync_group_enabled = false;
+  $http.get('api/sync_google_group').success(() => {
+    $scope.sync_group_enabled = true;
+  });
+
+  $scope.sync_group_requested = false;
+  $scope.syncGroups = () => {
+    $http.post('api/sync_google_group').success(() => {
+      $scope.sync_group_requested = true;
     });
   };
 }
