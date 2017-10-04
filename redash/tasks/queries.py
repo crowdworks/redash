@@ -466,6 +466,14 @@ class QueryExecutor(object):
             self._log_progress('checking_alerts')
             for query_id in updated_query_ids:
                 check_alerts_for_query.delay(query_id)
+
+            # crowdworks-extended
+            if settings.EXPORT_GOOGLE_SPREADSHEET_ENABLED:
+                self._log_progress('enqueue exporting google spreadsheet')
+                from redash.tasks import export_google_spreadsheet
+                for query_id in updated_query_ids:
+                    export_google_spreadsheet.delay(query_id)
+
             self._log_progress('finished')
 
             result = query_result.id

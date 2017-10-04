@@ -271,3 +271,25 @@ class QueryRefreshResource(BaseResource):
         parameter_values = collect_parameters_from_request(request.args)
 
         return run_query(query.data_source, parameter_values, query.query_text, query.id)
+
+
+# crowdworks-extended
+
+
+class ExportToGoogleSpreadsheetResource(BaseResource):
+    @require_permission('execute_query')
+    def get(self, query_id):
+        if not settings.EXPORT_GOOGLE_SPREADSHEET_ENABLED:
+            abort(400)
+
+        from redash.tasks import export_google_spreadsheet
+        from flask import redirect
+
+        query = get_object_or_404(models.Query.get_by_id_and_org, query_id, self.current_org)
+        require_access(query.groups, self.current_user, not_view_only)
+
+        if not (query.options and query.options['spreadsheetUrl']):
+            abort(400)
+
+        export_google_spreadsheet(query.id)
+        return redirect(query.options['spreadsheetUrl'])

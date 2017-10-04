@@ -106,3 +106,5 @@ api.add_org_resource(QuerySnippetListResource, '/api/query_snippets', endpoint='
 # crowdworks-extended
 from redash.handlers.groups import GroupMemberSyncResource
 api.add_org_resource(GroupMemberSyncResource, '/api/sync_google_group', endpoint='sync_google_group')
+from redash.handlers.queries import ExportToGoogleSpreadsheetResource
+api.add_org_resource(ExportToGoogleSpreadsheetResource, '/api/queries/<query_id>/gspread', endpoint='gspread')

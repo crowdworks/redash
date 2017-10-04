@@ -142,6 +142,11 @@ function QueryViewCtrl($scope, Events, $route, $routeParams, $location, $window,
 
   $scope.canScheduleQuery = currentUser.hasPermission('schedule_query');
 
+  $scope.canExportToGoogleSpreadsheet = false;
+  if ($scope.query.options && $scope.query.options.spreadsheetUrl) {
+    $scope.canExportToGoogleSpreadsheet = true;
+  }
+
   if ($route.current.locals.dataSources) {
     $scope.dataSources = $route.current.locals.dataSources;
     updateDataSources($route.current.locals.dataSources);
@@ -340,7 +345,7 @@ function QueryViewCtrl($scope, Events, $route, $routeParams, $location, $window,
 
     $uibModal.open({
       component: 'scheduleDialog',
-      size: 'sm',
+      size: 'm',
       resolve: {
         query: $scope.query,
         saveQuery: () => $scope.saveQuery,
