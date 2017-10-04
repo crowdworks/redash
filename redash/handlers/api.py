@@ -6,7 +6,7 @@ from redash.utils import json_dumps
 from redash.handlers.base import org_scoped_rule
 from redash.handlers.permissions import ObjectPermissionsListResource, CheckPermissionResource
 from redash.handlers.alerts import AlertResource, AlertListResource, AlertSubscriptionListResource, AlertSubscriptionResource
-from redash.handlers.dashboards import DashboardListResource, RecentDashboardsResource, DashboardResource, DashboardShareResource, PublicDashboardResource 
+from redash.handlers.dashboards import DashboardListResource, RecentDashboardsResource, DashboardResource, DashboardShareResource, PublicDashboardResource
 from redash.handlers.data_sources import DataSourceTypeListResource, DataSourceListResource, DataSourceSchemaResource, DataSourceResource, DataSourcePauseResource, DataSourceTestResource
 from redash.handlers.events import EventResource
 from redash.handlers.queries import QueryForkResource, QueryRefreshResource, QueryListResource, QueryRecentResource, QuerySearchResource, QueryResource, MyQueriesResource
@@ -105,6 +105,9 @@ api.add_org_resource(QuerySnippetListResource, '/api/query_snippets', endpoint='
 
 # crowdworks-extended
 from redash.handlers.groups import GroupMemberSyncResource
-api.add_org_resource(GroupMemberSyncResource, '/api/sync_google_group', endpoint='sync_google_group')
 from redash.handlers.queries import ExportToGoogleSpreadsheetResource
+from redash.handlers.organizations import CurrentOrganizationResource
+
+api.add_org_resource(GroupMemberSyncResource, '/api/sync_google_group', endpoint='sync_google_group')
 api.add_org_resource(ExportToGoogleSpreadsheetResource, '/api/queries/<query_id>/gspread', endpoint='gspread')
+api.add_org_resource(CurrentOrganizationResource, '/api/organizations/current', endpoint='current_organization')
