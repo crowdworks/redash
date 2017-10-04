@@ -51,7 +51,10 @@ from click import option
 @argument('slug')
 @option('--domains', default=None, help="Set allowable domains to comma separated list DOMAINS.")
 def create(name, slug, domains=None):
-    print "Create organization (%s slug=%s) ..." % (name, slug)
+    try:
+        print "Create organization ({} slug={}) ...".format(name, slug)
+    except UnicodeDecodeError, e:
+        print "Create organization (slug={})".format(slug)
 
     if domains:
         domains = domains.split(',')
