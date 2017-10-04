@@ -6,7 +6,8 @@ import './app-header.css';
 
 const logger = debug('redash:appHeader');
 
-function controller($rootScope, $location, $uibModal, Auth, currentUser, clientConfig, Dashboard) {
+function controller($rootScope, $location, $uibModal, $http,
+                    Auth, currentUser, clientConfig, Dashboard) {
   this.logoUrl = logoUrl;
   this.basePath = clientConfig.basePath;
   this.currentUser = currentUser;
@@ -40,6 +41,13 @@ function controller($rootScope, $location, $uibModal, Auth, currentUser, clientC
   this.logout = () => {
     Auth.logout();
   };
+
+  // crowdworks-extended
+  $http.get('api/organizations/current').success((response) => {
+    this.org_name = response.name;
+    this.org_background_color = response.background_color || 'blue';
+    this.org_color = response.color || 'white';
+  });
 }
 
 export default function (ngModule) {
