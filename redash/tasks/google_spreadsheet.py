@@ -23,7 +23,7 @@ def export_google_spreadsheet(query_id):
         return
 
     query = models.Query.query.get(query_id)
-    if not (query.options and query.options['spreadsheetUrl']):
+    if not (query.options and 'spreadsheetUrl' in query.options and query.options['spreadsheetUrl']):
         logger.info("query_id={} does not have settings for export.".format(query_id))
         return
 
