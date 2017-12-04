@@ -94,5 +94,5 @@ def list(organization=None):
         if i > 0:
             print "-" * 20
 
-        print "Id: {}\nName: {}\nType: {}\nOrganization: {}\nPermission: {}".format(
-            group.id, group.name, group.type, group.org.slug, ",".join(group.permissions))
+        print "Id: {}\nName: {}\nType: {}\nOrganization: {}".format(
+            group.id, group.name, group.type, group.org.slug)
