@@ -1,6 +1,6 @@
 import moment from 'moment';
 import { _, partial, isString } from 'underscore';
-import { getColumnCleanName } from '../../services/query-result';
+import { getColumnCleanName } from '@/services/query-result';
 import template from './table.html';
 
 function formatValue($filter, clientConfig, value, type) {
@@ -75,13 +75,20 @@ function GridRenderer(clientConfig) {
   };
 }
 
-export default function (ngModule) {
+export default function init(ngModule) {
   ngModule.config((VisualizationProvider) => {
+    const defaultOptions = {
+      defaultRows: 14,
+      defaultColumns: 4,
+      minColumns: 2,
+    };
+
     VisualizationProvider.registerVisualization({
       type: 'TABLE',
       name: 'Table',
       renderTemplate: '<grid-renderer options="visualization.options" query-result="queryResult"></grid-renderer>',
       skipTypes: true,
+      defaultOptions,
     });
   });
   ngModule.directive('gridRenderer', GridRenderer);
