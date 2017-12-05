@@ -14,7 +14,7 @@ import xlsxwriter
 from flask_login import AnonymousUserMixin, UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from passlib.apps import custom_app_context as pwd_context
-from redash import redis_connection, utils
+from redash import settings, redis_connection, utils
 from redash.destinations import (get_configuration_schema_for_destination_type,
                                  get_destination)
 from redash.metrics import database  # noqa: F401
@@ -22,8 +22,9 @@ from redash.permissions import has_access, view_only
 from redash.query_runner import (get_configuration_schema_for_query_runner_type,
                                  get_query_runner)
 from redash.utils import generate_token, json_dumps
+from redash.utils.comparators import CaseInsensitiveComparator
 from redash.utils.configuration import ConfigurationContainer
-from sqlalchemy import or_
+from sqlalchemy import distinct, or_
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.event import listens_for
 from sqlalchemy.ext.mutable import Mutable
@@ -31,8 +32,19 @@ from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import backref, joinedload, object_session, subqueryload
 from sqlalchemy.orm.exc import NoResultFound  # noqa: F401
 from sqlalchemy.types import TypeDecorator
+from functools import reduce
 
-db = SQLAlchemy(session_options={
+
+class SQLAlchemyExt(SQLAlchemy):
+    def apply_pool_defaults(self, app, options):
+        if settings.SQLALCHEMY_DISABLE_POOL:
+            from sqlalchemy.pool import NullPool
+            options['poolclass'] = NullPool
+        else:
+            return super(SQLAlchemyExt, self).apply_pool_defaults(app, options)
+
+
+db = SQLAlchemyExt(session_options={
     'expire_on_commit': False
 })
 
@@ -293,6 +305,16 @@ class Organization(TimestampMixin, db.Model):
         return self.settings.get(self.SETTING_IS_PUBLIC, False)
 
     @property
+    def is_disabled(self):
+        return self.settings.get('is_disabled', False)
+
+    def disable(self):
+        self.settings['is_disabled'] = True
+
+    def enable(self):
+        self.settings['is_disabled'] = False
+
+    @property
     def admin_group(self):
         return self.groups.filter(Group.name == 'admin', Group.type == Group.BUILTIN_GROUP).first()
 
@@ -347,12 +369,32 @@ class Group(db.Model, BelongsToOrgMixin):
         return unicode(self.id)
 
 
+class LowercasedString(TypeDecorator):
+    """
+    A lowercased string
+    """
+    impl = db.String
+    comparator_factory = CaseInsensitiveComparator
+
+    def __init__(self, length=320, *args, **kwargs):
+        super(LowercasedString, self).__init__(length=length, *args, **kwargs)
+
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            return value.lower()
+        return value
+
+    @property
+    def python_type(self):
+        return self.impl.type.python_type
+
+
 class User(TimestampMixin, db.Model, BelongsToOrgMixin, UserMixin, PermissionsCheckMixin):
     id = Column(db.Integer, primary_key=True)
     org_id = Column(db.Integer, db.ForeignKey('organizations.id'))
     org = db.relationship(Organization, backref=db.backref("users", lazy="dynamic"))
     name = Column(db.String(320))
-    email = Column(db.String(320))
+    email = Column(LowercasedString)
     password_hash = Column(db.String(128), nullable=True)
     # XXX replace with association table
     group_ids = Column('groups', MutableList.as_mutable(postgresql.ARRAY(db.Integer)), nullable=True)
@@ -364,6 +406,8 @@ class User(TimestampMixin, db.Model, BelongsToOrgMixin, UserMixin, PermissionsCh
     __table_args__ = (db.Index('users_org_id_email', 'org_id', 'email', unique=True),)
 
     def __init__(self, *args, **kwargs):
+        if kwargs.get('email') is not None:
+            kwargs['email'] = kwargs['email'].lower()
         super(User, self).__init__(*args, **kwargs)
 
     def to_dict(self, with_api_key=False):
@@ -717,7 +761,10 @@ class QueryResult(db.Model, BelongsToOrgMixin):
 
         for (r, row) in enumerate(query_data['rows']):
             for (c, name) in enumerate(column_names):
-                sheet.write(r + 1, c, row.get(name))
+                v = row.get(name)
+                if isinstance(v, list):
+                    v = str(v).encode('utf-8')
+                sheet.write(r + 1, c, v)
 
         book.close()
 
@@ -848,13 +895,16 @@ class Query(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model):
 
     @classmethod
     def all_queries(cls, group_ids, user_id=None, drafts=False):
+        query_ids = (db.session.query(distinct(cls.id))
+                               .join(DataSourceGroup, Query.data_source_id == DataSourceGroup.data_source_id)
+                               .filter(Query.is_archived == False)
+                               .filter(DataSourceGroup.group_id.in_(group_ids)))
+
         q = (cls.query
-            .options(joinedload(Query.user),
-                     joinedload(Query.latest_query_data).load_only('runtime', 'retrieved_at'))
-            .join(DataSourceGroup, Query.data_source_id == DataSourceGroup.data_source_id)
-            .filter(Query.is_archived == False)
-            .filter(DataSourceGroup.group_id.in_(group_ids))
-            .order_by(Query.created_at.desc()))
+                .options(joinedload(Query.user),
+                         joinedload(Query.latest_query_data).load_only('runtime', 'retrieved_at'))
+                .filter(cls.id.in_(query_ids))
+                .order_by(Query.created_at.desc()))
 
         if not drafts:
             q = q.filter(or_(Query.is_draft == False, Query.user_id == user_id))
@@ -943,7 +993,7 @@ class Query(ChangeTrackingMixin, TimestampMixin, BelongsToOrgMixin, db.Model):
 
     def fork(self, user):
         forked_list = ['org', 'data_source', 'latest_query_data', 'description',
-                       'query_text', 'query_hash']
+                       'query_text', 'query_hash', 'options']
         kwargs = {a: getattr(self, a) for a in forked_list}
         forked_query = Query.create(name=u'Copy of (#{}) {}'.format(self.id, self.name),
                                     user=user, **kwargs)
@@ -1037,13 +1087,13 @@ class AccessPermission(GFKBase, db.Model):
                              cls.object_type == obj.__tablename__)
 
         if access_type:
-            q.filter(AccessPermission.access_type == access_type)
+            q = q.filter(AccessPermission.access_type == access_type)
 
         if grantee:
-            q.filter(AccessPermission.grantee == grantee)
+            q = q.filter(AccessPermission.grantee == grantee)
 
         if grantor:
-            q.filter(AccessPermission.grantor == grantor)
+            q = q.filter(AccessPermission.grantor == grantor)
 
         return q
 

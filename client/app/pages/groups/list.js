@@ -1,4 +1,4 @@
-import { Paginator } from '../../utils';
+import { Paginator } from '@/lib/pagination';
 import template from './list.html';
 
 function GroupsCtrl($scope, $http, $uibModal, currentUser, Events, Group) {
@@ -35,7 +35,7 @@ function GroupsCtrl($scope, $http, $uibModal, currentUser, Events, Group) {
   };
 }
 
-export default function (ngModule) {
+export default function init(ngModule) {
   ngModule.controller('GroupsCtrl', GroupsCtrl);
 
   return {
