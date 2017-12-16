@@ -44,6 +44,7 @@ function controller($rootScope, $location, $uibModal, $http,
   };
 
   // crowdworks-extended
+  this.navigationURLPrefix = clientConfig.navigationURLPrefix;
   $http.get('api/organizations/current').success((response) => {
     this.org_name = response.name;
     this.org_background_color = response.background_color || 'blue';

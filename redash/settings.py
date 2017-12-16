@@ -324,5 +324,8 @@ COMMON_CLIENT_CONFIG = {
     'dateTimeFormat': "{0} HH:mm".format(DATE_FORMAT),
     'allowAllToEditQueries': FEATURE_ALLOW_ALL_TO_EDIT_QUERIES,
     'mailSettingsMissing': MAIL_DEFAULT_SENDER is None,
-    'logoUrl': LOGO_URL
+    'logoUrl': LOGO_URL,
+
+    # crowdworks-extended
+    'navigationURLPrefix': os.environ.get('REDASH_NAVIGATION_URL_PREFIX', '')
 }

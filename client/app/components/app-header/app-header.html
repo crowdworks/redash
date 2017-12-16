@@ -108,6 +108,7 @@
   </div>
 </nav>
 
+<!-- crowdworks-extended -->
 <div ng-if="$ctrl.org_name" style="background-color: {{$ctrl.org_background_color}}; color: {{$ctrl.org_color}}; padding: 5px 15px;">
-  <a href="/_welcome/" target ="_blank" style="color: yellow; font-weight: bold;">Redash一覧へ</a> : {{$ctrl.org_name}}
+  <a href="{{$ctrl.navigationURLPrefix}}/_welcome/" target ="_blank" style="color: yellow; font-weight: bold;">Redash一覧へ</a> : {{$ctrl.org_name}}
 </div>
