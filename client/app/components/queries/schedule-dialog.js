@@ -133,6 +133,7 @@ function spreadsheetExportSettings() {
     },
     template: `
       <label for="spreadsheet-url">Spreadsheet URL:</label>
+      <a href="/_welcome/spreadsheet_export.html" target="_blank">この機能について</a>
       <input type="text" ng-model="spreadsheetUrl" name="spreadsheet-url" style="width: 100%;">
       <button class="btn btn-default btn-s" ng-click="save()"><span class="fa fa-floppy-o"></span>Save</button>
       <button class="btn btn-default btn-s" ng-click="open()"><span class="fa fa-external-link"></span>Open</button>
