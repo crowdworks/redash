@@ -16,6 +16,15 @@ import os
 from pytz import timezone
 
 
+def cell_name(query_id, executed_at=None):
+    if executed_at:
+        return "{name}:id={query_id};executed={executed_at}".format(
+            name=settings.NAME, query_id=query_id, executed_at=executed_at
+        )
+    else:
+        return "{name}:id={query_id};".format(name=settings.NAME, query_id=query_id)
+
+
 @celery.task(name="redash.tasks.export_google_spreadsheet")
 def export_google_spreadsheet(query_id):
     if not settings.EXPORT_GOOGLE_SPREADSHEET_ENABLED:
@@ -50,38 +59,38 @@ def export_google_spreadsheet(query_id):
     logger.info("query_id={} export sheet URL: {}".format(query_id, spreadsheet_url))
     spreadsheet = _get_spreadsheet_service().open_by_url(spreadsheet_url)
 
-    worksheet_id = None
-    if '#gid=' in spreadsheet_url:
-        worksheet_id = spreadsheet_url.split('#', 2)[1].replace('gid=', '')
-        logger.info("query_id={} (worksheet_id={})".format(query_id, worksheet_id))
-
     worksheet = None
     for ws in spreadsheet.worksheets():
         if worksheet:
             break
-        if ws.id == worksheet_id:
-            worksheet = ws
-    for ws in spreadsheet.worksheets():
-        if worksheet:
-            break
-        if ws.title.startswith("redash: query={}".format(query_id)):
+        if ws.title.startswith(cell_name(query_id)):
             worksheet = ws
 
     if worksheet:
         logger.info("query_id={} (worksheet detect: {})".format(query_id, worksheet))
     else:
-        worksheet = spreadsheet.add_worksheet(title="redash: query={}".format(query_id), rows="100", cols="20")
+        worksheet = spreadsheet.add_worksheet(title=cell_name(query_id), rows="100", cols="20")
         logger.info("query_id={} (worksheet created. {})".format(query_id, worksheet))
 
-    worksheet.resize(len(rows) + 1, len(columns))
+    worksheet.resize(len(rows) + 1, len(columns) + 3)
     cell_list = worksheet.range(range_addr)
     for i, cell in enumerate(cell_list):
         cell.value = payload[i]
     worksheet.update_cells(cell_list)
-    worksheet.update_title("redash: query={} execute={}".format(
-        query_id,
-        query_result.retrieved_at.astimezone(timezone(os.environ.get('TZ', 'UTC'))).strftime('%Y/%m/%d %H:%M')
-    ))
+
+    if len(rows) == 0:
+        worksheet.resize(2, len(columns) + 3)
+
+    metadata_range = "{}:{}".format(
+        rowcol_to_a1(1, len(columns) + 2),
+        rowcol_to_a1(2, len(columns) + 3)
+    )
+    metadata_cells = worksheet.range(metadata_range)
+    metadata_cells[0].value = 'Query executed_at'
+    metadata_cells[1].value = 'Export executed_at'
+    metadata_cells[2].value = query_result.retrieved_at.astimezone(timezone(os.environ.get('TZ', 'UTC'))).strftime('%Y/%m/%d %H:%M')
+    metadata_cells[3].value = datetime.datetime.now(tz=timezone(os.environ.get('TZ', 'UTC'))).strftime('%Y/%m/%d %H:%M')
+    worksheet.update_cells(metadata_cells)
 
 
 def _get_spreadsheet_service():
