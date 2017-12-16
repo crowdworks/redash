@@ -7,4 +7,4 @@ from redash import settings
 from .google_group_sync import sync_google_group_members
 if settings.EXPORT_GOOGLE_SPREADSHEET_ENABLED:
     from .google_spreadsheet import export_google_spreadsheet
-# /crowdworks-exntended
+# /crowdworks-extended
