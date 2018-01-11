@@ -38,9 +38,9 @@ def queries_tasks():
     progress_limit = int(request.args.get('progress_limit', global_limit))
     done_limit = int(request.args.get('done_limit', global_limit))
 
-    waiting = QueryTaskTracker.all(QueryTaskTracker.WAITING_LIST, limit=waiting_limit)
-    in_progress = QueryTaskTracker.all(QueryTaskTracker.IN_PROGRESS_LIST, limit=progress_limit)
-    done = QueryTaskTracker.all(QueryTaskTracker.DONE_LIST, limit=done_limit)
+    waiting = QueryTaskTracker.all(QueryTaskTracker.WAITING_LIST, limit=waiting_limit, include_org=True)
+    in_progress = QueryTaskTracker.all(QueryTaskTracker.IN_PROGRESS_LIST, limit=progress_limit, include_org=True)
+    done = QueryTaskTracker.all(QueryTaskTracker.DONE_LIST, limit=done_limit, include_org=True)
 
     response = {
         'waiting': [t.data for t in waiting if t is not None],
