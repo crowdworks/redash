@@ -102,7 +102,7 @@ class QueryTaskTracker(object):
         return None
 
     @classmethod
-    def all(cls, list_name, offset=0, limit=-1):
+    def all(cls, list_name, offset=0, limit=-1, include_org=False):
         if limit != -1:
             limit -= 1
 
@@ -115,6 +115,20 @@ class QueryTaskTracker(object):
             pipe.get(id)
 
         tasks = [cls.create_from_data(data) for data in pipe.execute()]
+
+        # crowdworks-extended
+        if include_org:
+            ds_ids = list(set([t.data['data_source_id'] for t in tasks if isinstance(t.data['data_source_id'], int)]))
+            data_sources = {}
+            for ds in models.DataSource.query.filter(models.DataSource.id.in_(ds_ids)):
+                data_sources[ds.id] = ds
+
+            for t in tasks:
+                if t.data['data_source_id'] in data_sources:
+                    ds = data_sources[t.data['data_source_id']]
+                    t.data['org_id'] = ds.org.id
+                    t.data['org_slug'] = ds.org.slug
+
         return tasks
 
     @classmethod
