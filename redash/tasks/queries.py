@@ -126,6 +126,7 @@ class QueryTaskTracker(object):
             for t in tasks:
                 if t.data['data_source_id'] in data_sources:
                     ds = data_sources[t.data['data_source_id']]
+                    t.data['data_source_name'] = ds.name
                     t.data['org_id'] = ds.org.id
                     t.data['org_slug'] = ds.org.slug
 
