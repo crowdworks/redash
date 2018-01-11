@@ -124,11 +124,18 @@ class QueryTaskTracker(object):
                 data_sources[ds.id] = ds
 
             for t in tasks:
+                t.data['multi_org'] = settings.MULTI_ORG
+                t.data['query_link'] = 'queries/{query_id}'.format(query_id=t.data['query_id'])
+                t.data['org_slug_link'] = '#'
+
                 if t.data['data_source_id'] in data_sources:
                     ds = data_sources[t.data['data_source_id']]
                     t.data['data_source_name'] = ds.name
                     t.data['org_id'] = ds.org.id
                     t.data['org_slug'] = ds.org.slug
+                    if settings.MULTI_ORG:
+                        t.data['query_link'] = '/{org_slug}/queries/{query_id}'.format(org_slug=ds.org.slug, query_id=t.data['query_id'])
+                        t.data['org_slug_link'] = '/{org_slug}/'.format(org_slug=ds.org.slug)
 
         return tasks
 

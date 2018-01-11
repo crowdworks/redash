@@ -18,6 +18,7 @@
     <table class="table table-condensed table-hover">
       <thead>
       <tr>
+        <th>Org</th>
         <th>Data Source ID</th>
         <th>Username</th>
         <th>State</th>
@@ -32,10 +33,11 @@
       </thead>
       <tbody>
       <tr ng-repeat="row in $ctrl.tasksPaginator.getPageRows()">
-        <td>{{row.data_source_id}}</td>
+        <td><a href="{{row.org_slug_link}}" target="_blank">{{row.org_slug}}</a></td>
+        <td>{{row.data_source_id}} / {{row.data_source_name}}</td>
         <td>{{row.username}}</td>
         <td>{{row.state}} <span ng-if="row.state === 'failed'" uib-popover="{{row.error}}" popover-trigger="mouseenter" class="zmdi zmdi-help"></span></td>
-        <td><a href="queries/{{row.query_id}}">{{row.query_id}}</a></td>
+        <td><a href="{{row.query_link}}" target="_blank">{{row.query_id}}</a></td>
         <td>{{row.query_hash}}</td>
         <td>{{row.run_time | durationHumanize}}</td>
         <td>{{row.created_at | toMilliseconds | dateTime }}</td>
