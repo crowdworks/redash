@@ -485,6 +485,8 @@ class QueryExecutor(object):
             if self.scheduled_query:
                 self.scheduled_query.schedule_failures += 1
                 models.db.session.add(self.scheduled_query)
+            if settings.QUERY_ERROR_REPORT_ENABLED:
+                query_error_report_slack(self.query_hash, self.query, self.data_source, self.user, run_time, error, self.metadata)
         else:
             if (self.scheduled_query and
                     self.scheduled_query.schedule_failures > 0):
@@ -550,3 +552,86 @@ def execute_query(self, query, data_source_id, metadata, user_id=None,
         scheduled_query = None
     return QueryExecutor(self, query, data_source_id, user_id, metadata,
                          scheduled_query).run()
+
+
+# crowdworks-extended
+import requests
+def query_error_report_slack(query_hash, query, data_source, user, run_time, error, metadata):
+    if not settings.QUERY_ERROR_REPORT_ENABLED:
+        return
+
+    host = settings.HOST
+    url = settings.QUERY_ERROR_REPORT_SLACK_WEBHOOK_URL
+    channel = settings.QUERY_ERROR_REPORT_SLACK_CHANNEL
+    username = settings.QUERY_ERROR_REPORT_SLACK_USERNAME
+    icon_emoji = settings.QUERY_ERROR_REPORT_SLACK_ICON_EMOJI
+
+    query_id = metadata.get("Query ID", None)
+    if query_id:
+        if settings.MULTI_ORG:
+            org_slug = data_source.org.slug
+            query_link = "{host}/{org_slug}/queries/{query_id}".format(host=host, org_slug=org_slug, query_id=query_id)
+        else:
+            query_link = "{host}/queries/{query_id}".format(host=host, query_id=query_id)
+    else:
+        query_link = "{host}/{org_slug}/ (adhoc query)"
+
+    attachments = []
+    color = "#c0392b"
+
+    attachments.append({
+        "text": "Query execution failed",
+        "mrkdwn_in": ["text"],
+        "color": color,
+        "fields": [
+            {
+                "title": "User",
+                "value": user.email if user is not None else "(unknown)",
+                "short": True,
+            },
+            {
+                "title": "Query Link",
+                "value": query_link,
+                "short": True,
+            },
+            {
+                "title": "Run time (sec)",
+                "value": "{:.2f}".format(run_time),
+                "short": True,
+            },
+            {
+                "title": "DataSource",
+                "value": data_source.name,
+                "short": True,
+            }
+        ]
+    })
+
+    attachments.append({
+        "title": "Query",
+        "text": "```\n" + query.strip() + "\n```",
+        "mrkdwn_in": ["text"],
+        "color": color,
+    })
+
+    attachments.append({
+        "title": "Error Message",
+        "text": "```\n" + error.strip() + "\n```",
+        "mrkdwn_in": ["text"],
+        "color": color,
+    })
+
+    payload = {'attachments': attachments}
+
+    if username: payload['username'] = username
+    if icon_emoji: payload['icon_emoji'] = icon_emoji
+    if channel: payload['channel'] = channel
+
+    try:
+        resp = requests.post(url, data=json.dumps(payload))
+        logging.warning(resp.text)
+        if resp.status_code != 200:
+            logging.error("Slack send ERROR. status_code => {status}".format(status=resp.status_code))
+
+    except Exception:
+        logging.exception("Slack send ERROR.")
