@@ -567,6 +567,9 @@ def query_error_report_slack(query_hash, query, data_source, user, run_time, err
     icon_emoji = settings.QUERY_ERROR_REPORT_SLACK_ICON_EMOJI
 
     query_id = metadata.get("Query ID", None)
+    if query_id == 'adhoc':
+        query_id = None
+
     if query_id:
         if settings.MULTI_ORG:
             org_slug = data_source.org.slug
@@ -574,7 +577,10 @@ def query_error_report_slack(query_hash, query, data_source, user, run_time, err
         else:
             query_link = "{host}/queries/{query_id}".format(host=host, query_id=query_id)
     else:
-        query_link = "{host}/{org_slug}/ (adhoc query)"
+        if settings.MULTI_ORG:
+            query_link = "{host}/{org_slug}/ (adhoc query)".format(host=host, org_slug=org_slug)
+        else:
+            query_link = "{host} (adhoc query)".format(host=host)
 
     attachments = []
     color = "#c0392b"
