@@ -486,7 +486,11 @@ class QueryExecutor(object):
                 self.scheduled_query.schedule_failures += 1
                 models.db.session.add(self.scheduled_query)
             if settings.QUERY_ERROR_REPORT_ENABLED:
-                query_error_report_slack(self.query_hash, self.query, self.data_source, self.user, run_time, error, self.metadata)
+                try:
+                    query_error_report_slack(self.query_hash, self.query, self.data_source, self.user, run_time, error, self.metadata)
+                except Exception as e:
+                    error = unicode(e)
+                    logging.warning('Unexpected error while query_error_report_slack: {}'.format(error), exc_info=1)
         else:
             if (self.scheduled_query and
                     self.scheduled_query.schedule_failures > 0):
@@ -578,6 +582,7 @@ def query_error_report_slack(query_hash, query, data_source, user, run_time, err
             query_link = "{host}/queries/{query_id}".format(host=host, query_id=query_id)
     else:
         if settings.MULTI_ORG:
+            org_slug = data_source.org.slug
             query_link = "{host}/{org_slug}/ (adhoc query)".format(host=host, org_slug=org_slug)
         else:
             query_link = "{host} (adhoc query)".format(host=host)
