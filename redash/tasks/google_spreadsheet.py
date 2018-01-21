@@ -83,13 +83,20 @@ def export_google_spreadsheet(query_id):
 
     _update_spreadsheet_metadata(
         worksheet=worksheet,
+        query=query,
         query_result=query_result,
         offset_columns=offset_columns,
         num_rows=num_rows
     )
 
 
-def _update_spreadsheet_metadata(worksheet, query_result, offset_columns, num_rows):
+def _update_spreadsheet_metadata(worksheet, query, query_result, offset_columns, num_rows):
+    if settings.MULTI_ORG:
+        org_slug = query.data_source.org.slug
+        query_url = 'https://{host}/{org_slug}/queries/{query_id}'.format(host=settings.HOST, org_slug=org_slug, query_id=query.id)
+    else:
+        query_url = 'https://{host}/queries/{query_id}'.format(host=settings.HOST, query_id=query.id)
+
     metadata = [
         {
             'title': 'Query executed_at',
@@ -98,6 +105,10 @@ def _update_spreadsheet_metadata(worksheet, query_result, offset_columns, num_ro
         {
             'title': 'Export executed_at',
             'value': datetime.datetime.now(tz=timezone(os.environ.get('TZ', 'UTC'))).strftime('%Y/%m/%d %H:%M'),
+        },
+        {
+            'title': 'Source',
+            'value': query_url
         },
     ]
 
