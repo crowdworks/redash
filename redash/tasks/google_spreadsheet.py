@@ -72,24 +72,54 @@ def export_google_spreadsheet(query_id):
         worksheet = spreadsheet.add_worksheet(title=cell_name(query_id), rows="100", cols="20")
         logger.info("query_id={} (worksheet created. {})".format(query_id, worksheet))
 
-    worksheet.resize(len(rows) + 1, len(columns) + 3)
+    offset_columns = len(columns) + 1
+    num_rows = len(rows)
+
+    worksheet.resize(num_rows + 1, offset_columns)
     cell_list = worksheet.range(range_addr)
     for i, cell in enumerate(cell_list):
         cell.value = payload[i]
     worksheet.update_cells(cell_list)
 
-    if len(rows) == 0:
-        worksheet.resize(2, len(columns) + 3)
+    _update_spreadsheet_metadata(
+        worksheet=worksheet,
+        query_result=query_result,
+        offset_columns=offset_columns,
+        num_rows=num_rows
+    )
+
+
+def _update_spreadsheet_metadata(worksheet, query_result, offset_columns, num_rows):
+    metadata = [
+        {
+            'title': 'Query executed_at',
+            'value': query_result.retrieved_at.astimezone(timezone(os.environ.get('TZ', 'UTC'))).strftime('%Y/%m/%d %H:%M'),
+        },
+        {
+            'title': 'Export executed_at',
+            'value': datetime.datetime.now(tz=timezone(os.environ.get('TZ', 'UTC'))).strftime('%Y/%m/%d %H:%M'),
+        },
+    ]
+
+    metadata_payload = []
+    for m in metadata:
+        metadata_payload.append(m['title'])
+    for m in metadata:
+        metadata_payload.append(m['value'])
+
+    if num_rows == 0:
+        worksheet.resize(2, offset_columns + len(metadata))
+    else:
+        worksheet.resize(num_rows + 1, offset_columns + len(metadata))
 
     metadata_range = "{}:{}".format(
-        rowcol_to_a1(1, len(columns) + 2),
-        rowcol_to_a1(2, len(columns) + 3)
+        rowcol_to_a1(1, offset_columns + 1),
+        rowcol_to_a1(2, offset_columns + len(metadata))
     )
     metadata_cells = worksheet.range(metadata_range)
-    metadata_cells[0].value = 'Query executed_at'
-    metadata_cells[1].value = 'Export executed_at'
-    metadata_cells[2].value = query_result.retrieved_at.astimezone(timezone(os.environ.get('TZ', 'UTC'))).strftime('%Y/%m/%d %H:%M')
-    metadata_cells[3].value = datetime.datetime.now(tz=timezone(os.environ.get('TZ', 'UTC'))).strftime('%Y/%m/%d %H:%M')
+
+    for i, m in enumerate(metadata_payload):
+        metadata_cells[i].value = m
     worksheet.update_cells(metadata_cells)
 
 
