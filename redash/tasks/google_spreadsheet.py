@@ -75,6 +75,8 @@ def export_google_spreadsheet(query_id):
     offset_columns = len(columns) + 1
     num_rows = len(rows)
 
+    worksheet.resize(1,1)
+
     worksheet.resize(num_rows + 1, offset_columns)
     cell_list = worksheet.range(range_addr)
     for i, cell in enumerate(cell_list):
