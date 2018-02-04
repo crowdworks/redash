@@ -486,8 +486,10 @@ class QueryExecutor(object):
                 self.scheduled_query.schedule_failures += 1
                 models.db.session.add(self.scheduled_query)
             if settings.QUERY_ERROR_REPORT_ENABLED:
+                logging.info("QUERY_ERROR_REPORT_ENABLED. report to slack ...")
                 try:
-                    query_error_report_slack(self.query_hash, self.query, self.data_source, self.user, run_time, error, self.metadata)
+                    query_error_report_slack(query_string=self.query, data_source=self.data_source, user=self.user,
+                                             run_time=run_time, error=error, metadata=self.metadata)
                 except Exception as e:
                     error = unicode(e)
                     logging.warning('Unexpected error while query_error_report_slack: {}'.format(error), exc_info=1)
@@ -560,7 +562,7 @@ def execute_query(self, query, data_source_id, metadata, user_id=None,
 
 # crowdworks-extended
 import requests
-def query_error_report_slack(query_hash, query, data_source, user, run_time, error, metadata):
+def query_error_report_slack(query_string, data_source, user, run_time, error, metadata):
     if not settings.QUERY_ERROR_REPORT_ENABLED:
         return
 
@@ -587,6 +589,12 @@ def query_error_report_slack(query_hash, query, data_source, user, run_time, err
         else:
             query_link = "{host} (adhoc query)".format(host=host)
 
+    query = None
+    query_name = '(unknown)'
+    if query_id:
+        query = models.Query.get_by_id(query_id)
+        query_name = query.name
+
     attachments = []
     color = "#c0392b"
 
@@ -606,6 +614,11 @@ def query_error_report_slack(query_hash, query, data_source, user, run_time, err
                 "short": True,
             },
             {
+                "title": "Query Title",
+                "value": query_name,
+                "short": False,
+            },
+            {
                 "title": "Run time (sec)",
                 "value": "{:.2f}".format(run_time),
                 "short": True,
@@ -620,7 +633,7 @@ def query_error_report_slack(query_hash, query, data_source, user, run_time, err
 
     attachments.append({
         "title": "Query",
-        "text": "```\n" + query.strip() + "\n```",
+        "text": "```\n" + query_string.strip() + "\n```",
         "mrkdwn_in": ["text"],
         "color": color,
     })
@@ -641,7 +654,9 @@ def query_error_report_slack(query_hash, query, data_source, user, run_time, err
     try:
         resp = requests.post(url, data=json.dumps(payload))
         logging.warning(resp.text)
-        if resp.status_code != 200:
+        if resp.status_code == 200:
+            logging.info("Slack send Success. status_code => {status}".format(status=resp.status_code))
+        else:
             logging.error("Slack send ERROR. status_code => {status}".format(status=resp.status_code))
 
     except Exception:
