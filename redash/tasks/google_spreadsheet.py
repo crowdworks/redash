@@ -16,7 +16,7 @@ import os
 from pytz import timezone
 
 
-def cell_name(query_id, executed_at=None):
+def sheet_name(query_id, executed_at=None):
     if executed_at:
         return "{name}:id={query_id};executed={executed_at}".format(
             name=settings.NAME, query_id=query_id, executed_at=executed_at
@@ -42,6 +42,18 @@ def export_google_spreadsheet(query_id):
             query_id, query.data_source_id, query.query_hash))
         return
 
+    try:
+        _update_spreadsheet_data(query_id, query, query_result)
+        spreadsheet_update_slack_notify(status="success", query=query)
+    except Exception as e:
+        error = unicode(e)
+        logger.warning('Unexpected error while _update_spreadsheet_data: {}'.format(error), exc_info=1)
+        spreadsheet_update_slack_notify(status="failed", query=query, exception=e)
+        raise e
+
+
+def _update_spreadsheet_data(query_id, query, query_result):
+
     query_data = json.loads(query_result.data)
     columns = query_data['columns']
     rows = query_data['rows']
@@ -63,13 +75,13 @@ def export_google_spreadsheet(query_id):
     for ws in spreadsheet.worksheets():
         if worksheet:
             break
-        if ws.title.startswith(cell_name(query_id)):
+        if ws.title.startswith(sheet_name(query_id)):
             worksheet = ws
 
     if worksheet:
         logger.info("query_id={} (worksheet detect: {})".format(query_id, worksheet))
     else:
-        worksheet = spreadsheet.add_worksheet(title=cell_name(query_id), rows="100", cols="20")
+        worksheet = spreadsheet.add_worksheet(title=sheet_name(query_id), rows="100", cols="20")
         logger.info("query_id={} (worksheet created. {})".format(query_id, worksheet))
 
     offset_columns = len(columns) + 1
@@ -139,3 +151,103 @@ def _update_spreadsheet_metadata(worksheet, query, query_result, offset_columns,
 def _get_spreadsheet_service():
     credentials = OAuth2Credentials.from_json(settings.EXPORT_GOOGLE_SPREADSHEET_OAUTH_TOKEN)
     return gspread.authorize(credentials)
+
+
+import requests
+def spreadsheet_update_slack_notify(status, query, exception=None):
+    if not settings.QUERY_ERROR_REPORT_ENABLED:
+        return
+
+    host = settings.HOST
+    url = settings.QUERY_ERROR_REPORT_SLACK_WEBHOOK_URL
+    channel = settings.QUERY_ERROR_REPORT_SLACK_CHANNEL
+    username = settings.QUERY_ERROR_REPORT_SLACK_USERNAME
+    icon_emoji = settings.QUERY_ERROR_REPORT_SLACK_ICON_EMOJI
+
+    if query and query.id:
+        if settings.MULTI_ORG:
+            org_slug = query.org.slug
+            query_link = "{host}/{org_slug}/queries/{query_id}".format(host=host, org_slug=org_slug, query_id=query.id)
+        else:
+            query_link = "{host}/queries/{query_id}".format(host=host, query_id=query.id)
+    else:
+        if settings.MULTI_ORG:
+            org_slug = query.org.slug
+            query_link = "{host}/{org_slug}/ (adhoc query)".format(host=host, org_slug=org_slug)
+        else:
+            query_link = "{host} (adhoc query)".format(host=host)
+
+    user = query.user
+
+    attachments = []
+
+    if status == "success":
+        title = "QueryResult exports success"
+        color = "#439fe0"
+    else:
+        title = "QueryResult exports failed"
+        color = "#c0392b"
+
+    attachments.append({
+        "text": title,
+        "mrkdwn_in": ["text"],
+        "color": color,
+        "fields": [
+            {
+                "title": "User",
+                "value": user.email if user is not None else "(unknown)",
+                "short": True,
+            },
+            {
+                "title": "Query Link",
+                "value": query_link,
+                "short": True,
+            },
+            {
+                "title": "Query Title",
+                "value": query.name,
+                "short": False,
+            },
+            {
+                "title": "Spreadsheet URL",
+                "value": query.options['spreadsheetUrl'],
+                "short": False,
+            },
+        ]
+    })
+
+    attachments.append({
+        "title": "Query",
+        "text": "```\n" + query.query_text.strip() + "\n```",
+        "mrkdwn_in": ["text"],
+        "color": color,
+    })
+
+    if exception:
+        err_message = unicode(exception.__class__)
+        if len(unicode(exception.message).strip()) > 0:
+            err_message += "\n```\n{}```".format(unicode(exception.message).strip())
+
+        attachments.append({
+            "title": "Error Message",
+            "text": err_message,
+            "mrkdwn_in": ["text"],
+            "color": color,
+        })
+
+    payload = {'attachments': attachments}
+
+    if username: payload['username'] = username
+    if icon_emoji: payload['icon_emoji'] = icon_emoji
+    if channel: payload['channel'] = channel
+
+    try:
+        resp = requests.post(url, data=json.dumps(payload))
+        logger.warning(resp.text)
+        if resp.status_code == 200:
+            logger.info("Slack send Success. status_code => {status}".format(status=resp.status_code))
+        else:
+            logger.error("Slack send ERROR. status_code => {status}".format(status=resp.status_code))
+
+    except Exception:
+        logger.exception("Slack send ERROR.")
