@@ -470,7 +470,7 @@ class QueryExecutor(object):
         except Exception as e:
             error = unicode(e)
             data = None
-            logging.warning('Unexpected error while running query:', exc_info=1)
+            logger.warning('Unexpected error while running query:', exc_info=1)
 
         run_time = time.time() - self.tracker.started_at
         self.tracker.update(error=error, run_time=run_time, state='saving_results')
@@ -486,13 +486,13 @@ class QueryExecutor(object):
                 self.scheduled_query.schedule_failures += 1
                 models.db.session.add(self.scheduled_query)
             if settings.QUERY_ERROR_REPORT_ENABLED:
-                logging.info("QUERY_ERROR_REPORT_ENABLED. report to slack ...")
+                logger.info("QUERY_ERROR_REPORT_ENABLED. report to slack ...")
                 try:
                     query_error_report_slack(query_string=self.query, data_source=self.data_source, user=self.user,
                                              run_time=run_time, error=error, metadata=self.metadata)
                 except Exception as e:
                     error = unicode(e)
-                    logging.warning('Unexpected error while query_error_report_slack: {}'.format(error), exc_info=1)
+                    logger.warning('Unexpected error while query_error_report_slack: {}'.format(error), exc_info=1)
         else:
             if (self.scheduled_query and
                     self.scheduled_query.schedule_failures > 0):
@@ -653,11 +653,11 @@ def query_error_report_slack(query_string, data_source, user, run_time, error, m
 
     try:
         resp = requests.post(url, data=json.dumps(payload))
-        logging.warning(resp.text)
+        logger.warning(resp.text)
         if resp.status_code == 200:
-            logging.info("Slack send Success. status_code => {status}".format(status=resp.status_code))
+            logger.info("Slack send Success. status_code => {status}".format(status=resp.status_code))
         else:
-            logging.error("Slack send ERROR. status_code => {status}".format(status=resp.status_code))
+            logger.error("Slack send ERROR. status_code => {status}".format(status=resp.status_code))
 
     except Exception:
-        logging.exception("Slack send ERROR.")
+        logger.exception("Slack send ERROR.")
